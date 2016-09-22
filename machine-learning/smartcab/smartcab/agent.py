@@ -2,20 +2,24 @@ import random
 from environment import Agent, Environment
 from planner import RoutePlanner
 from simulator import Simulator
+import sys
 
 import time
 
 class LearningAgent(Agent):
     """An agent that learns to drive in the smartcab world."""
 
-    def __init__(self, env, epsilon):
+    def __init__(self, env, alpha, gamma, epsilon):
         super(LearningAgent, self).__init__(env)  # sets self.env = env, state = None, next_waypoint = None, and a default color
         self.color = 'red'  # override color
         self.planner = RoutePlanner(self.env, self)  # simple route planner to get next_waypoint
 
         self.Q = {}
         self.epsilon = epsilon
+        self.alpha = alpha
+        self.gamma = gamma
         self.wrongActions = 0
+        self.successfulTrial = 0
 
     def reset(self, destination=None):
         self.planner.route_to(destination)
@@ -28,7 +32,7 @@ class LearningAgent(Agent):
         deadline = self.env.get_deadline(self)
 
         # map inputs and next_waypoint to a state
-        self.state = self.getState(inputs['light'], self.next_waypoint, inputs['oncoming'], inputs['right'], inputs['left'])
+        self.state = self.getState2(inputs['light'], self.next_waypoint, inputs['oncoming'], inputs['right'], inputs['left'])
 
         # get the action which maximizes Q(s, action)
         action = max(['left', 'right', 'forward', None], key=lambda a: self.getQ(self.state, a))
@@ -40,11 +44,13 @@ class LearningAgent(Agent):
         reward = self.env.act(self, action)
         if reward < 0:
             self.wrongActions += 1
+        if self.env.done == True:
+            self.successfulTrial += 1
 
         # TODO: Learn policy based on state, action, reward
         nextInputs = self.env.sense(self)
         nextWaypoint = self.planner.next_waypoint()
-        next_state = self.getState(nextInputs['light'], nextWaypoint, nextInputs['oncoming'], nextInputs['right'], nextInputs['left'])
+        next_state = self.getState2(nextInputs['light'], nextWaypoint, nextInputs['oncoming'], nextInputs['right'], nextInputs['left'])
         maxFutureQ = max(map(lambda a: self.getQ(next_state, a), ['left', 'right', 'forward', None]))
 
         # if nexts == None then that means we don't have Q values for the next states, so don't take it into account
@@ -61,8 +67,12 @@ class LearningAgent(Agent):
         newQ = reward + gamma * maxFutureQ
         self.Q[self.state][action] = (1-alpha) * currentQ + alpha * newQ
 
-        print("LearningAgent.update(): deadline = {}, inputs = {}, action = {}, reward = {}".format(deadline, inputs, action, reward))  # [debug]
+        #print("LearningAgent.update(): deadline = {}, inputs = {}, action = {}, reward = {}".format(deadline, inputs, action, reward))  # [debug]
 
+    def getState2(self, light, direction, oncoming, right, left):
+        return "{}-{}-{}-{}".format(light, direction, oncoming, left)
+
+    #as per reviewer's recommendation I won't use this function but rather use most of the input state itself
     def getState(self, light, direction, oncoming, right, left):
         trafficCrosses =  \
             (direction == 'forward' and right    in ['forward', 'right', 'left']) or \
@@ -84,12 +94,12 @@ class LearningAgent(Agent):
 
         return self.Q[state][action]
 
-def run():
+def run(trainingEpsilon, testingEpsilon, alpha, gamma):
     """Run the agent for a finite number of trials."""
 
     # Set up environment and agent
     e = Environment(10)  # create environment (also adds some dummy traffic)
-    a = e.create_agent(LearningAgent, 0.8)  # create agent
+    a = e.create_agent(LearningAgent, alpha, gamma, trainingEpsilon)  # create agent
     e.set_primary_agent(a, enforce_deadline=True)  # specify agent to track
     # NOTE: You can set enforce_deadline=False while debugging to allow longer trials
 
@@ -100,13 +110,25 @@ def run():
     sim.run(n_trials=100)  # run for a specified number of trials
     # NOTE: To quit midway, press Esc or close pygame window, or hit Ctrl+C on the command-line
 
-    print "Wrong actions: {}".format(a.wrongActions)
     a.wrongActions = 0
-    a.epsilon = 0.0
+    a.successfulTrial = 0
+    a.epsilon = testingEpsilon
     sim = Simulator(e, update_delay=0, display=False)  # create simulator (uses pygame when display=True, if available)
     sim.run(n_trials=100)  # run for a specified number of trials
     print "Wrong actions: {}".format(a.wrongActions)
+    print "Succesful trials: {}".format(a.successfulTrial)
+    return (a.wrongActions, 100-a.successfulTrial)
 
+def gridSearch():
+    resultString = ""
+    for alpha in xrange(0, 10):
+        resultString = resultString + str(alpha/10.0)
+        for gamma in xrange(0,10):
+            result = run(0.8, 0, alpha/10.0, gamma/10.0)
+            resultString = resultString + " & " +  str(result)
+        resultString = resultString + "\n"
+    print resultString
 
+    #output as latex because I don't want to copy paste it all
 if __name__ == '__main__':
-    run()
+    gridSearch()
