@@ -51,8 +51,8 @@ class LearningAgent(Agent):
         if maxFutureQ == None:
             maxFutureQ = 0
 
-        gamma = 0.3
-        alpha = 0.8
+        gamma = 0.01
+        alpha = 0.2
 
         currentQ = self.Q[self.state][action]
         if currentQ == None:
@@ -88,7 +88,7 @@ def run():
     """Run the agent for a finite number of trials."""
 
     # Set up environment and agent
-    e = Environment(50)  # create environment (also adds some dummy traffic)
+    e = Environment(10)  # create environment (also adds some dummy traffic)
     a = e.create_agent(LearningAgent, 0.8)  # create agent
     e.set_primary_agent(a, enforce_deadline=True)  # specify agent to track
     # NOTE: You can set enforce_deadline=False while debugging to allow longer trials
@@ -103,8 +103,8 @@ def run():
     print "Wrong actions: {}".format(a.wrongActions)
     a.wrongActions = 0
     a.epsilon = 0.0
-    sim = Simulator(e, update_delay=0.5, display=True)  # create simulator (uses pygame when display=True, if available)
-    sim.run(n_trials=10)  # run for a specified number of trials
+    sim = Simulator(e, update_delay=0, display=False)  # create simulator (uses pygame when display=True, if available)
+    sim.run(n_trials=100)  # run for a specified number of trials
     print "Wrong actions: {}".format(a.wrongActions)
 
 
