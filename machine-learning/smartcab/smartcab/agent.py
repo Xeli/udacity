@@ -44,6 +44,8 @@ class LearningAgent(Agent):
         reward = self.env.act(self, action)
         if reward < 0:
             self.wrongActions += 1
+            print self.state
+            print("LearningAgent.update(): deadline = {}, inputs = {}, action = {}, reward = {}".format(deadline, inputs, action, reward))  # [debug]
         if self.env.done == True:
             self.successfulTrial += 1
 
@@ -94,7 +96,10 @@ class LearningAgent(Agent):
 
         return self.Q[state][action]
 
-def run(trainingEpsilon, testingEpsilon, alpha, gamma):
+def run():
+    runParams(0.8, 0, 0.5, 0.2)
+
+def runParams(trainingEpsilon, testingEpsilon, alpha, gamma):
     """Run the agent for a finite number of trials."""
 
     # Set up environment and agent
@@ -117,6 +122,9 @@ def run(trainingEpsilon, testingEpsilon, alpha, gamma):
     sim.run(n_trials=100)  # run for a specified number of trials
     print "Wrong actions: {}".format(a.wrongActions)
     print "Succesful trials: {}".format(a.successfulTrial)
+
+    sim = Simulator(e, update_delay=0.5, display=True)
+    sim.run(n_trials=10)
     return (a.wrongActions, 100-a.successfulTrial)
 
 def gridSearch():
@@ -124,11 +132,12 @@ def gridSearch():
     for alpha in xrange(0, 10):
         resultString = resultString + str(alpha/10.0)
         for gamma in xrange(0,10):
-            result = run(0.8, 0, alpha/10.0, gamma/10.0)
+            result = runParams(0.8, 0, alpha/10.0, gamma/10.0)
             resultString = resultString + " & " +  str(result)
         resultString = resultString + "\n"
     print resultString
 
     #output as latex because I don't want to copy paste it all
 if __name__ == '__main__':
-    gridSearch()
+    #gridSearch()
+    run()

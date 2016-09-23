@@ -74,12 +74,13 @@ I ended up with the following:
 \item gamma at 0.2
 \end{itemize}
 
-This gives me 3 invalid actions and 0 unsuccesful trials. 
+This gives me 3 invalid actions and 0 unsuccessful trials. 
 
 \begin{center}
 \textit{\textbf{QUESTION:} Does your agent get close to finding an optimal policy, i.e. reach the destination in the minimum possible time, and not incur any penalties? How would you describe an optimal policy for this problem?}
 \end{center}
 
-I think it does get close to an optimal policy. It had only 3 invalid actions, which means at least 97\% of the trials go optimally. I say optimally because an optimal policy would mean: Don't make any traffic violations, always go the direction the planner indicates you should go. So with almost all rewards being zero or positive this  means no traffic violations and following the planner. (or waiting for traffic light). So that's pretty good!
+I think it does get close to an optimal policy. It had only 3 invalid actions. I say optimally because an optimal policy would mean: Don't make any traffic violations, always go the direction the planner indicates you should go. So with almost all rewards being zero or positive this  means no traffic violations and following the planner. (or waiting for traffic light). \par
+Looking at what those 3 invalid actions are, we see they have $-0.5$ reward and that the error the smartcab made was that I did not follow the planner. So of the errors it made, it actually did not even make a traffic violation which would be worse. It also did in fact reach the destination on time in all 3 cases. So that's pretty good!
 
 \end{document}
