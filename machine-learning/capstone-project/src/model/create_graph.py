@@ -38,7 +38,7 @@ class CreateGraph(object):
         hidden_nodes = 64
         padding = 'SAME'
 
-        filenames = self.get_filenames(dataset_dir)[:10000]
+        filenames = self.get_filenames(dataset_dir)[:2000]
         shuffle(filenames)
 
         labels = self.get_labels(filenames)
@@ -46,22 +46,26 @@ class CreateGraph(object):
         X_train, X_test, y_train, y_test = train_test_split(filenames, labels, test_size=0.1)
         X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=0.1)
 
-        X_valid = self.get_data(X_valid, 3)
+        X_valid = self.get_data(X_valid, self.image_channels)
 
         # Input data.
         shape = (batch_size, self.image_size, self.image_size, self.image_channels)
         tf_train_dataset = tf.placeholder(tf.float32, shape=shape)
 
+        shape = (len(X_valid), self.image_size, self.image_size, self.image_channels)
+        tf_validation_dataset = tf.placeholder(tf.float32, shape=shape)
         shape = (1, self.image_size, self.image_size, self.image_channels)
         tf_test_dataset = tf.placeholder(tf.float32, shape=shape)
 
         filters, biases = self.create_weights(5, self.image_channels, filter_count)
         train = self.add_layer(tf_train_dataset, filters, biases, padding, dropout=True)
+        valid = self.add_layer(tf_validation_dataset, filters, biases, padding)
         test = self.add_layer(tf_test_dataset, filters, biases, padding)
 
         for i in range(0, layers):
             filters, biases = self.create_weights(5, filter_count, filter_count)
             train = self.add_layer(train, filters, biases, padding, dropout=True)
+            valid = self.add_layer(valid, filters, biases, padding)
             test = self.add_layer(test, filters, biases, padding)
 
         # create fully connected output layer
@@ -80,6 +84,12 @@ class CreateGraph(object):
         connected = tf.nn.relu(tf.matmul(reshape, connected_weights) + connected_biases)
         model_train = tf.matmul(connected, output_weights) + output_biases
 
+        shape = valid.get_shape().as_list()
+        new_shape = [shape[0], shape[1] * shape[2] * shape[3]]
+        reshape = tf.reshape(valid, new_shape)
+        connected = tf.nn.relu(tf.matmul(reshape, connected_weights) + connected_biases)
+        model_valid = tf.matmul(connected, output_weights) + output_biases
+
         shape = test.get_shape().as_list()
         new_shape = [shape[0], shape[1] * shape[2] * shape[3]]
         reshape = tf.reshape(test, new_shape)
@@ -93,6 +103,7 @@ class CreateGraph(object):
         optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss)
 
         train_prediction = tf.nn.softmax(model_train)
+        validation_prediction = tf.nn.softmax(model_valid)
         test_prediction = tf.nn.softmax(model_test)
 
         data = {
@@ -119,8 +130,10 @@ class CreateGraph(object):
                 print('Minibatch loss at step %d: %f' % (step, l))
                 acc = self.accuracy(predictions, batch_labels)
                 print('Minibatch accuracy: %.1f%%' % acc)
-
-                _, l, val_predictions = session.run(args, feed_dict={tf_test_dataset: X_valid})
+                feed_dict = {
+                    tf_validation_dataset: X_valid
+                }
+                _, l, predictions = session.run([validation_prediction], feed_dict=feed_dict)
                 validation = self.accuracy(predictions, y_valid)
                 print('Validation accuracy: %.1f%%' % validation)
                 data['loss'].append(l)
