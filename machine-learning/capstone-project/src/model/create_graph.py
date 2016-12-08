@@ -3,7 +3,7 @@ from os import path, walk, sep
 from random import shuffle
 import numpy as np
 from scipy import ndimage
-from sklearn.model_selection import train_test_split
+from cross_version import train_test_split
 
 
 class CreateGraph(object):
@@ -23,8 +23,7 @@ class CreateGraph(object):
         return filter_, biases
 
     def add_layer(self, prev, filter_, biases, padding, dropout=False, k=2):
-        strides = [1, 1, 1, 1]
-        conv = tf.nn.conv2d(prev, filter_, strides=strides, padding=padding)
+        conv = tf.nn.conv2d(prev, filter_, strides=[1, 1, 1, 1], padding=padding)
         hidden = tf.nn.relu(conv + biases)
         pool = tf.nn.max_pool(hidden, ksize=[1, k, k, 1], strides=[1, k, k, 1], padding='SAME')
 
@@ -33,20 +32,24 @@ class CreateGraph(object):
 
         return pool
 
-    def train_model(self, dataset_dir, batch_size, learning_rate, layers):
+    def train_model(self, dataset_dir, batch_size, initial_learning_rate, layers):
         filter_count = 16
         hidden_nodes = 64
         padding = 'SAME'
 
-        filenames = self.get_filenames(dataset_dir)[:2000]
+        filenames = self.get_filenames(dataset_dir)
         shuffle(filenames)
 
         labels = self.get_labels(filenames)
 
         X_train, X_test, y_train, y_test = train_test_split(filenames, labels, test_size=0.1)
-        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=0.1)
+        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=0.01)
 
-        X_valid = self.get_data(X_valid, self.image_channels)
+        X_valid = self.get_data(X_valid)
+
+        print("Training data size: {}".format(len(X_train)))
+        print("Validation data size: {}".format(len(X_valid)))
+        print("Test data size: {}".format(len(X_test)))
 
         # Input data.
         shape = (batch_size, self.image_size, self.image_size, self.image_channels)
@@ -100,7 +103,17 @@ class CreateGraph(object):
         tf_train_labels = tf.placeholder(tf.float32, shape=label_shape)
         loss = tf.reduce_mean(
                 tf.nn.softmax_cross_entropy_with_logits(model_train, tf_train_labels))
-        optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss)
+
+        batch = tf.Variable(0)
+        learning_rate = tf.train.exponential_decay(
+            initial_learning_rate,
+            batch * batch_size,
+            len(filenames),
+            0.95,
+            staircase=True
+        )
+        optimizer = tf.train.GradientDescentOptimizer(learning_rate)
+        optimizer = optimizer.minimize(loss, global_step=batch)
 
         train_prediction = tf.nn.softmax(model_train)
         validation_prediction = tf.nn.softmax(model_valid)
@@ -114,13 +127,16 @@ class CreateGraph(object):
         }
 
         session = tf.InteractiveSession()
-        session.run(tf.global_variables_initializer())
+        if tf.__version__ >= '0.12.0':
+            session.run(tf.global_variables_initializer())
+        else:
+            session.run(tf.initialize_all_variables())
 
         for step in range(1500):
             print('Step: {}'.format(step))
             offset = (step * batch_size) % (len(y_train) - batch_size)
             batch_filenames = X_train[offset:(offset + batch_size)]
-            batch_data = self.get_data(batch_filenames, 3)
+            batch_data = self.get_data(batch_filenames)
             batch_labels = y_train[offset:(offset + batch_size), :]
             feed_dict = {tf_train_dataset: batch_data,
                          tf_train_labels: batch_labels}
@@ -133,7 +149,7 @@ class CreateGraph(object):
                 feed_dict = {
                     tf_validation_dataset: X_valid
                 }
-                _, l, predictions = session.run([validation_prediction], feed_dict=feed_dict)
+                predictions = session.run(validation_prediction, feed_dict=feed_dict)
                 validation = self.accuracy(predictions, y_valid)
                 print('Validation accuracy: %.1f%%' % validation)
                 data['loss'].append(l)
@@ -145,13 +161,15 @@ class CreateGraph(object):
         total = predictions.shape[0]
         return 100.0 * np.sum(np.argmax(predictions, 1) == np.argmax(labels, 1)) / total
 
-    def get_data(self, filenames, image_channels):
-        shape = (len(filenames), self.image_size, self.image_size, image_channels)
+    def get_data(self, filenames):
+        shape = (len(filenames), self.image_size, self.image_size, self.image_channels)
         dataset = np.ndarray(shape=shape, dtype=np.float32)
         for i, filename in enumerate(filenames):
-            dataset[i, :, :] = ((ndimage.imread(filename)).astype(float) - 255.0 / 2) / 255.0
+            data = ((ndimage.imread(filename)).astype(float) - 255.0 / 2) / 255.0
+            data = data.reshape((self.image_size, self.image_size, 1))
+            dataset[i, :, :] = data
 
-        return self.reformat(image_channels, dataset)
+        return self.reformat(dataset)
 
     def get_labels(self, filenames):
         labels = [path.basename(filename).split('.')[0] for filename in filenames]
@@ -168,9 +186,9 @@ class CreateGraph(object):
             filenames = filenames + absFiles
         return filenames
 
-    def reformat(self, image_channels, dataset):
+    def reformat(self, dataset):
         dataset = dataset.reshape(
-          (-1, self.image_size, self.image_size, image_channels)).astype(np.float32)
+          (-1, self.image_size, self.image_size, self.image_channels)).astype(np.float32)
         return dataset
 
     def dense_to_one_hot(self, labels_dense, num_classes):

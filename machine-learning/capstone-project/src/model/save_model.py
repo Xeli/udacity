@@ -45,7 +45,7 @@ class SaveModel(object):
 base_directory = os.path.dirname(os.path.abspath(__file__)) + '/../../'
 dataset_dir = base_directory + "dataset/"
 
-cg = CreateGraph(2, 500, 3)
+cg = CreateGraph(2, 125, 1)
 session, input_, output_, data = cg.train_model(dataset_dir + "normalized_train", 32, 0.01, 16)
 
 sm = SaveModel(base_directory + 'results', session, data, input_, output_)
