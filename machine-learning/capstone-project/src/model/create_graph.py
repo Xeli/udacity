@@ -132,7 +132,7 @@ class CreateGraph(object):
         else:
             session.run(tf.initialize_all_variables())
 
-        for step in range(1500):
+        for step in range(15):
             print('Step: {}'.format(step))
             offset = (step * batch_size) % (len(y_train) - batch_size)
             batch_filenames = X_train[offset:(offset + batch_size)]
@@ -155,6 +155,19 @@ class CreateGraph(object):
                 data['loss'].append(l)
                 data['accuracy'].append(acc)
                 data['validation'].append(validation)
+
+        def f(filename):
+            shape = (1, self.image_size, self.image_size, self.image_channels)
+            image_data = self.get_data([filename])[0].reshape(shape)
+            feed_dict = {
+                tf_test_dataset: image_data
+            }
+            return session.run(test_prediction, feed_dict=feed_dict)
+
+        predictions = [f(data) for data in X_test]
+        predictions = np.array(predictions).reshape(len(predictions), self.label_count)
+        print('Testset accuracy: {}'.format(self.accuracy(predictions, y_test)))
+
         return session, tf_test_dataset, test_prediction, data
 
     def accuracy(self, predictions, labels):
