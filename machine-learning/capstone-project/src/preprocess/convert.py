@@ -20,5 +20,6 @@ def convert(from_dir, to_dir, size):
         image = Image.open(filename)
         normalized = idi.normalize(image)
         padded = idi.resize(normalized, size)
+        padded = padded.convert('L')
         padded.save(to_dir + '/' + os.path.basename(filename))
     print('Done                  ')
