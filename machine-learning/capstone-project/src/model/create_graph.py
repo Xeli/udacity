@@ -38,28 +38,30 @@ class CreateGraph(object):
         hidden_nodes = 64
         padding = 'SAME'
 
-        dataset, labels = self.get_data(dataset_dir, self.image_channels)
+        filenames = self.get_filenames(dataset_dir)[:10000]
+        shuffle(filenames)
 
-        dataset, X_test, labels, y_test = train_test_split(dataset, labels, test_size=0.1)
-        X_train, X_valid, y_train, y_valid = train_test_split(dataset, labels, test_size=0.1)
+        labels = self.get_labels(filenames)
+
+        X_train, X_test, y_train, y_test = train_test_split(filenames, labels, test_size=0.1)
+        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=0.1)
+
+        X_valid = self.get_data(X_valid, 3)
 
         # Input data.
         shape = (batch_size, self.image_size, self.image_size, self.image_channels)
         tf_train_dataset = tf.placeholder(tf.float32, shape=shape)
 
-        tf_validation_dataset = tf.constant(X_valid)
         shape = (1, self.image_size, self.image_size, self.image_channels)
         tf_test_dataset = tf.placeholder(tf.float32, shape=shape)
 
         filters, biases = self.create_weights(5, self.image_channels, filter_count)
         train = self.add_layer(tf_train_dataset, filters, biases, padding, dropout=True)
-        valid = self.add_layer(tf_validation_dataset, filters, biases, padding)
         test = self.add_layer(tf_test_dataset, filters, biases, padding)
 
         for i in range(0, layers):
             filters, biases = self.create_weights(5, filter_count, filter_count)
             train = self.add_layer(train, filters, biases, padding, dropout=True)
-            valid = self.add_layer(valid, filters, biases, padding)
             test = self.add_layer(test, filters, biases, padding)
 
         # create fully connected output layer
@@ -78,12 +80,6 @@ class CreateGraph(object):
         connected = tf.nn.relu(tf.matmul(reshape, connected_weights) + connected_biases)
         model_train = tf.matmul(connected, output_weights) + output_biases
 
-        shape = valid.get_shape().as_list()
-        new_shape = [shape[0], shape[1] * shape[2] * shape[3]]
-        reshape = tf.reshape(valid, new_shape)
-        connected = tf.nn.relu(tf.matmul(reshape, connected_weights) + connected_biases)
-        model_valid = tf.matmul(connected, output_weights) + output_biases
-
         shape = test.get_shape().as_list()
         new_shape = [shape[0], shape[1] * shape[2] * shape[3]]
         reshape = tf.reshape(test, new_shape)
@@ -97,7 +93,6 @@ class CreateGraph(object):
         optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss)
 
         train_prediction = tf.nn.softmax(model_train)
-        validation_prediction = tf.nn.softmax(model_valid)
         test_prediction = tf.nn.softmax(model_test)
 
         data = {
@@ -113,7 +108,8 @@ class CreateGraph(object):
         for step in range(1500):
             print('Step: {}'.format(step))
             offset = (step * batch_size) % (len(y_train) - batch_size)
-            batch_data = X_train[offset:(offset + batch_size), :, :, :]
+            batch_filenames = X_train[offset:(offset + batch_size)]
+            batch_data = self.get_data(batch_filenames, 3)
             batch_labels = y_train[offset:(offset + batch_size), :]
             feed_dict = {tf_train_dataset: batch_data,
                          tf_train_labels: batch_labels}
@@ -123,7 +119,9 @@ class CreateGraph(object):
                 print('Minibatch loss at step %d: %f' % (step, l))
                 acc = self.accuracy(predictions, batch_labels)
                 print('Minibatch accuracy: %.1f%%' % acc)
-                validation = self.accuracy(validation_prediction.eval(), y_valid)
+
+                _, l, val_predictions = session.run(args, feed_dict={tf_test_dataset: X_valid})
+                validation = self.accuracy(predictions, y_valid)
                 print('Validation accuracy: %.1f%%' % validation)
                 data['loss'].append(l)
                 data['accuracy'].append(acc)
@@ -134,20 +132,20 @@ class CreateGraph(object):
         total = predictions.shape[0]
         return 100.0 * np.sum(np.argmax(predictions, 1) == np.argmax(labels, 1)) / total
 
-    def get_data(self, directory, image_channels):
-        filenames = self.get_filenames(directory)[:500]
-        shuffle(filenames)
-
+    def get_data(self, filenames, image_channels):
         shape = (len(filenames), self.image_size, self.image_size, image_channels)
         dataset = np.ndarray(shape=shape, dtype=np.float32)
         for i, filename in enumerate(filenames):
             dataset[i, :, :] = ((ndimage.imread(filename)).astype(float) - 255.0 / 2) / 255.0
 
+        return self.reformat(image_channels, dataset)
+
+    def get_labels(self, filenames):
         labels = [path.basename(filename).split('.')[0] for filename in filenames]
         labels = [0 if label == 'dog' else 1 for label in labels]
         labels = np.array(labels, dtype=np.int32)
         labels = self.dense_to_one_hot(labels, 2)
-        return self.reformat(image_channels, dataset), labels
+        return labels
 
     def get_filenames(self, directory):
         "Gather the filenames of all files inside this dir"
