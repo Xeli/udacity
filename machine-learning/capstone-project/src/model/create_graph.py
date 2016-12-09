@@ -128,8 +128,8 @@ class CreateGraph(object):
         data = {
             'accuracy': [],
             'logloss': [],
-            'loss': [],
-            'validation': []
+            'validation-accuracy': [],
+            'validation-logloss': []
         }
 
         session = tf.InteractiveSession()
@@ -150,17 +150,22 @@ class CreateGraph(object):
             if (step % 150 == 0):
                 print('Step: {}'.format(step))
                 print('Minibatch loss at step %d: %f' % (step, l))
-                acc = self.accuracy(predictions, batch_labels)
-                print('Minibatch accuracy: %.1f%%' % acc)
+                accuracy, logloss = self.test(predictions, batch_labels)
+                print('Minibatch accuracy: %.1f%%' % accuracy)
+                print('Minibatch logloss: {}'.format(logloss))
+
+                data['accuracy'].append(accuracy)
+                data['logloss'].append(logloss)
+
                 feed_dict = {
                     tf_validation_dataset: X_valid
                 }
                 predictions = session.run(validation_prediction, feed_dict=feed_dict)
-                validation = self.accuracy(predictions, y_valid)
-                print('Validation accuracy: %.1f%%' % validation)
-                data['loss'].append(l)
-                data['accuracy'].append(acc)
-                data['validation'].append(validation)
+                accuracy, logloss = self.test(predictions, y_valid)
+                print('Validation accuracy: %.1f%%' % accuracy)
+                print('Validation logloss: {}'.format(logloss))
+                data['validation-accuracy'].append(accuracy)
+                data['validation-logloss'].append(logloss)
 
         def f(filename):
             shape = (1, self.image_size, self.image_size, self.image_channels)
@@ -172,13 +177,26 @@ class CreateGraph(object):
 
         predictions = [f(data) for data in X_test]
         predictions = np.array(predictions).reshape(len(predictions), self.label_count)
-        print('Testset accuracy: {}'.format(self.accuracy(predictions, y_test)))
+
+        accuracy, logloss = self.test(predictions, y_test)
+        print('Testset accuracy: {}'.format(accuracy))
+        print('Testset logloss: {}'.format(logloss))
 
         return session, tf_test_dataset, test_prediction, data
+
+    def test(self, predictions, labels):
+        return self.accuracy(predictions, labels), self.logloss(predictions, labels)
 
     def accuracy(self, predictions, labels):
         total = predictions.shape[0]
         return 100.0 * np.sum(np.argmax(predictions, 1) == np.argmax(labels, 1)) / total
+
+    def logloss(self, predictions, labels):
+        error = 0
+        for prediction, label in zip(predictions.tolist(), labels.tolist()):
+            error += label[0] * np.log(prediction[0]) + (1-label[1])*np.log(1 - prediction[1])
+
+        return (-1.0/(len(predictions))) * error
 
     def get_data(self, filenames):
         shape = (len(filenames), self.image_size, self.image_size, self.image_channels)

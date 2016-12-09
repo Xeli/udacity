@@ -23,7 +23,8 @@ class SaveModel(object):
         return basedir + os.sep + directory_name + os.sep
 
     def write_data_to_file(self):
-        self.write_list_to_file(self.data['loss'], self.directory + 'loss.csv')
+        for key in self.data:
+            self.write_list_to_file(self.data[key], self.directory + key + '.csv')
 
     def write_list_to_file(self, data, filename):
         new_file = open(filename, 'w')
@@ -46,7 +47,9 @@ base_directory = os.path.dirname(os.path.abspath(__file__)) + '/../../'
 dataset_dir = base_directory + "dataset/"
 
 cg = CreateGraph(2, 125, 1)
-session, input_, output_, data = cg.train_model(dataset_dir + "normalized_train", 16, 0.01, 4, 15000)
+
+train_dir = dataset_dir + "normalized_train"
+session, input_, output_, data = cg.train_model(train_dir, 16, 0.01, 4, 10000)
 
 sm = SaveModel(base_directory + 'results', session, data, input_, output_)
 sm.write_data_to_file()
