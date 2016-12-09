@@ -34,7 +34,7 @@ class CreateGraph(object):
 
         return layer
 
-    def train_model(self, dataset_dir, batch_size, initial_learning_rate, layers):
+    def train_model(self, dataset_dir, batch_size, initial_learning_rate, layers, steps):
         filter_count = 16
         hidden_nodes = 64
         padding = 'SAME'
@@ -138,8 +138,7 @@ class CreateGraph(object):
         else:
             session.run(tf.initialize_all_variables())
 
-        for step in range(15):
-            print('Step: {}'.format(step))
+        for step in range(steps):
             offset = (step * batch_size) % (len(y_train) - batch_size)
             batch_filenames = X_train[offset:(offset + batch_size)]
             batch_data = self.get_data(batch_filenames)
@@ -148,7 +147,8 @@ class CreateGraph(object):
                          tf_train_labels: batch_labels}
             args = [optimizer, loss, train_prediction]
             _, l, predictions = session.run(args, feed_dict=feed_dict)
-            if (step % 50 == 0):
+            if (step % 150 == 0):
+                print('Step: {}'.format(step))
                 print('Minibatch loss at step %d: %f' % (step, l))
                 acc = self.accuracy(predictions, batch_labels)
                 print('Minibatch accuracy: %.1f%%' % acc)
