@@ -22,15 +22,17 @@ class CreateGraph(object):
 
         return filter_, biases
 
-    def add_layer(self, prev, filter_, biases, padding, dropout=False, k=2):
-        conv = tf.nn.conv2d(prev, filter_, strides=[1, 1, 1, 1], padding=padding)
-        hidden = tf.nn.relu(conv + biases)
-        pool = tf.nn.max_pool(hidden, ksize=[1, k, k, 1], strides=[1, k, k, 1], padding='SAME')
-
+    def add_layer(self, layer, filter_, biases, padding, dropout=False, pool=False, k=2):
         if dropout:
-            pool = tf.nn.dropout(pool, 0.5)
+            layer = tf.nn.dropout(layer, 0.75)
 
-        return pool
+        layer = tf.nn.conv2d(layer, filter_, strides=[1, 1, 1, 1], padding=padding)
+        layer = tf.nn.relu(layer + biases)
+
+        if pool:
+            layer = tf.nn.max_pool(layer, ksize=[1, k, k, 1], strides=[1, k, k, 1], padding='SAME')
+
+        return layer
 
     def train_model(self, dataset_dir, batch_size, initial_learning_rate, layers):
         filter_count = 16
@@ -61,15 +63,19 @@ class CreateGraph(object):
         tf_test_dataset = tf.placeholder(tf.float32, shape=shape)
 
         filters, biases = self.create_weights(5, self.image_channels, filter_count)
-        train = self.add_layer(tf_train_dataset, filters, biases, padding, dropout=True)
-        valid = self.add_layer(tf_validation_dataset, filters, biases, padding)
-        test = self.add_layer(tf_test_dataset, filters, biases, padding)
+        train = self.add_layer(tf_train_dataset, filters, biases, padding, dropout=True, pool=True)
+        valid = self.add_layer(tf_validation_dataset, filters, biases, padding, pool=True)
+        test = self.add_layer(tf_test_dataset, filters, biases, padding, pool=True)
 
         for i in range(0, layers):
             filters, biases = self.create_weights(5, filter_count, filter_count)
             train = self.add_layer(train, filters, biases, padding, dropout=True)
             valid = self.add_layer(valid, filters, biases, padding)
             test = self.add_layer(test, filters, biases, padding)
+
+            train = self.add_layer(train, filters, biases, padding, dropout=True, pool=True)
+            valid = self.add_layer(valid, filters, biases, padding, pool=True)
+            test = self.add_layer(test, filters, biases, padding, pool=True)
 
         # create fully connected output layer
         shape = train.get_shape().as_list()
