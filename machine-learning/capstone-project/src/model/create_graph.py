@@ -68,11 +68,12 @@ class CreateGraph(object):
         test = self.add_layer(tf_test_dataset, filters, biases, padding, pool=True)
 
         for i in range(0, layers):
-            filters, biases = self.create_weights(5, filter_count, filter_count)
+            filters, biases = self.create_weights(3, filter_count, filter_count)
             train = self.add_layer(train, filters, biases, padding, dropout=True)
             valid = self.add_layer(valid, filters, biases, padding)
             test = self.add_layer(test, filters, biases, padding)
 
+            filters, biases = self.create_weights(3, filter_count, filter_count)
             train = self.add_layer(train, filters, biases, padding, dropout=True, pool=True)
             valid = self.add_layer(valid, filters, biases, padding, pool=True)
             test = self.add_layer(test, filters, biases, padding, pool=True)
