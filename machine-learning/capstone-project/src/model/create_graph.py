@@ -70,7 +70,6 @@ class CreateGraph(object):
 
         X_train, y_train = train
         X_valid, y_valid = validation
-        X_valid = self.get_data(X_valid)
         X_test, y_test = test
 
         print("Training data size: {}".format(len(X_train)))
@@ -82,7 +81,6 @@ class CreateGraph(object):
         tf_train_dataset = tf.placeholder(tf.float32, shape=shape)
 
         shape = (len(X_valid), self.image_size, self.image_size, self.image_channels)
-        tf_validation_dataset = tf.placeholder(tf.float32, shape=shape)
         shape = (1, self.image_size, self.image_size, self.image_channels)
         tf_test_dataset = tf.placeholder(tf.float32, shape=shape)
 
@@ -90,7 +88,6 @@ class CreateGraph(object):
         if dropout_input:
             train = tf.nn.dropout(train, dropout_input)
 
-        valid = tf_validation_dataset
         test = tf_test_dataset
 
         filter_count_adj = self.image_channels
@@ -98,10 +95,9 @@ class CreateGraph(object):
             f3, b3 = self.create_weights(3, filter_count_adj, filter_count)
 
             train_shape = train.get_shape()
-            add_pooling_layer = i%2==0 and train_shape[1] > 4
+            add_pooling_layer = i % 2 == 0 and train_shape[1] > 4
 
             train = self.add_layer(train, f3, b3, padding, dropout_hidden, add_pooling_layer)
-            valid = self.add_layer(valid, f3, b3, padding, pool=add_pooling_layer)
             test = self.add_layer(test, f3, b3, padding, pool=add_pooling_layer)
 
             filter_count_adj = filter_count
@@ -121,12 +117,6 @@ class CreateGraph(object):
         reshape = tf.reshape(train, new_shape)
         connected = tf.nn.relu(tf.matmul(reshape, connected_weights) + connected_biases)
         model_train = tf.matmul(connected, output_weights) + output_biases
-
-        shape = valid.get_shape().as_list()
-        new_shape = [shape[0], shape[1] * shape[2] * shape[3]]
-        reshape = tf.reshape(valid, new_shape)
-        connected = tf.nn.relu(tf.matmul(reshape, connected_weights) + connected_biases)
-        model_valid = tf.matmul(connected, output_weights) + output_biases
 
         shape = test.get_shape().as_list()
         new_shape = [shape[0], shape[1] * shape[2] * shape[3]]
@@ -151,7 +141,6 @@ class CreateGraph(object):
         optimizer = optimizer.minimize(loss, global_step=batch)
 
         train_prediction = tf.nn.softmax(model_train)
-        validation_prediction = tf.nn.softmax(model_valid)
         test_prediction = tf.nn.softmax(model_test)
 
         data = {
@@ -186,32 +175,32 @@ class CreateGraph(object):
                 data['accuracy'].append(accuracy)
                 data['logloss'].append(logloss)
 
-                feed_dict = {
-                    tf_validation_dataset: X_valid
-                }
-                predictions = session.run(validation_prediction, feed_dict=feed_dict)
-                accuracy, logloss = self.test(predictions, y_valid)
+                accuracy, logloss = self.test_dataset(session, test_prediction, tf_test_dataset, X_valid, y_valid)
                 print('Validation accuracy: %.1f%%' % accuracy)
                 print('Validation logloss: {}'.format(logloss))
                 data['validation-accuracy'].append(accuracy)
                 data['validation-logloss'].append(logloss)
 
-        def f(filename):
-            shape = (1, self.image_size, self.image_size, self.image_channels)
-            image_data = self.get_data([filename])[0].reshape(shape)
-            feed_dict = {
-                tf_test_dataset: image_data
-            }
-            return session.run(test_prediction, feed_dict=feed_dict)
-
-        predictions = [f(data) for data in X_test]
-        predictions = np.array(predictions).reshape(len(predictions), self.label_count)
-
-        accuracy, logloss = self.test(predictions, y_test)
+        accuracy, logloss = self.test_dataset(session, test_prediction, tf_test_dataset, X_test, y_test)
         print('Testset accuracy: {}'.format(accuracy))
         print('Testset logloss: {}'.format(logloss))
 
         return session, tf_test_dataset, test_prediction, data
+
+    def test_dataset(self, session, tf_predictor, tf_input, X, y):
+        def f(filename):
+            shape = (1, self.image_size, self.image_size, self.image_channels)
+            image_data = self.get_data([filename])[0].reshape(shape)
+            feed_dict = {
+                tf_input: image_data
+            }
+            return session.run(tf_predictor, feed_dict=feed_dict)
+
+        predictions = [f(data) for data in X]
+        predictions = np.array(predictions).reshape(len(predictions), self.label_count)
+
+        return self.test(predictions, y)
+
 
     def test(self, predictions, labels):
         return self.accuracy(predictions, labels), self.logloss(predictions, labels)
