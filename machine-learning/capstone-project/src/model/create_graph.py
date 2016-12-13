@@ -62,14 +62,14 @@ class CreateGraph(object):
         dropout_input = param['dropout_input']
         dropout_hidden = param['dropout_hidden_layers']
         learning_rate = param['learning_rate']
-        steps = len(train) // batch_size * param['epochs']
-
         filter_count = 16
         padding = 'SAME'
 
         X_train, y_train = train
         X_valid, y_valid = validation
         X_test, y_test = test
+
+        steps = len(X_train) // batch_size * param['epochs']
 
         print("Training data size: {}".format(len(X_train)))
         print("Validation data size: {}".format(len(X_valid)))
