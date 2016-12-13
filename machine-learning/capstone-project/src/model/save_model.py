@@ -58,7 +58,7 @@ train_dir = dataset_dir + "normalized_train"
 filenames = cg.get_filenames(train_dir)
 shuffle(filenames)
 labels = cg.get_labels(filenames)
-X_train, X_valid, y_train, y_valid = train_test_split(filenames, labels, test_size=0.1)
+X_train, X_valid, y_train, y_valid = train_test_split(filenames, labels, test_size=0.001)
 train = (X_train, y_train)
 validation = (X_valid, y_valid)
 
@@ -76,9 +76,8 @@ parameters = {
     'hidden_nodes': [16, 32],
     'dropout_input': [False, 0.9],
     'dropout_hidden_layers': [False, 0.5],
-    'learning_mode': ['dynamic', 'constant'],
-    'learning_rate': [0.05, 0.1],
-    'steps': [1000],
+    'learning_rate': ['dynamic', 0.05, 0.1],
+    'epochs': [1, 10],
 }
 parameters = OrderedDict(parameters.items())
 
@@ -93,8 +92,17 @@ while len(parameters) > 0:
             new_params.append(new_param)
     params = new_params
 
-for param in params:
-    session, input_, output_, data = cg.train_model(train, validation, test, param)
+# for param in params:
+param = {
+    'batch_size': 16,
+    'layers': 8,
+    'hidden_nodes': 16,
+    'dropout_input': False,
+    'dropout_hidden_layers': False,
+    'learning_rate': 0.05,
+    'epochs': 10,
+}
+session, input_, output_, data = cg.train_model(train, validation, test, param)
 
 sm = SaveModel(base_directory + 'results', session, data, input_, output_)
 sm.write_data_to_file()

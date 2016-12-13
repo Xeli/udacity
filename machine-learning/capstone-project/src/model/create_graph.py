@@ -61,9 +61,8 @@ class CreateGraph(object):
         hidden_nodes = param['hidden_nodes']
         dropout_input = param['dropout_input']
         dropout_hidden = param['dropout_hidden_layers']
-        learning_mode = param['learning_mode']
         learning_rate = param['learning_rate']
-        steps = param['steps']
+        steps = len(train) // batch_size * param['epochs']
 
         filter_count = 16
         padding = 'SAME'
@@ -129,18 +128,16 @@ class CreateGraph(object):
         loss = tf.reduce_mean(
                 tf.nn.softmax_cross_entropy_with_logits(model_train, tf_train_labels))
 
-        batch = tf.Variable(0)
-        learning_rate = tf.train.exponential_decay(
-            learning_rate,
-            batch * batch_size,
-            len(X_train),
-            0.95,
-            staircase=True
-        )
-        optimizer = tf.train.GradientDescentOptimizer(learning_rate)
-        optimizer = optimizer.minimize(loss, global_step=batch)
+        initial_learning_rate = learning_rate
+        if learning_rate == 'dynamic':
+            initial_learning_rate = 0.2
 
-        train_prediction = tf.nn.softmax(model_train)
+        tf_learning_rate = tf.Variable(initial_learning_rate)
+
+        optimizer = tf.train.GradientDescentOptimizer(tf_learning_rate)
+        optimizer = optimizer.minimize(loss)
+
+        train_prediction = tf.Print(tf.nn.softmax(model_train), [tf_learning_rate])
         test_prediction = tf.nn.softmax(model_test)
 
         data = {
@@ -156,15 +153,21 @@ class CreateGraph(object):
         else:
             session.run(tf.initialize_all_variables())
 
+        new_learning_rate = initial_learning_rate
+        previous_loss = None
         for step in range(steps):
             offset = (step * batch_size) % (len(y_train) - batch_size)
             batch_filenames = X_train[offset:(offset + batch_size)]
             batch_data = self.get_data(batch_filenames)
             batch_labels = y_train[offset:(offset + batch_size), :]
             feed_dict = {tf_train_dataset: batch_data,
-                         tf_train_labels: batch_labels}
+                         tf_train_labels: batch_labels,
+                         tf_learning_rate: new_learning_rate}
             args = [optimizer, loss, train_prediction]
             _, l, predictions = session.run(args, feed_dict=feed_dict)
+
+            if learning_rate == 'dynamic':
+                new_learning_rate = self.update_learning_rate(l, previous_loss, new_learning_rate)
             if (step % 150 == 0):
                 print('Step: {}'.format(step))
                 print('Minibatch loss at step %d: %f' % (step, l))
@@ -186,6 +189,12 @@ class CreateGraph(object):
         print('Testset logloss: {}'.format(logloss))
 
         return session, tf_test_dataset, test_prediction, data
+
+    def update_learning_rate(self, loss, old_loss, learning_rate):
+        if old_loss != None and loss > old_loss:
+            return learning_rate * 1.5
+
+        return learning_rate * 0.99
 
     def test_dataset(self, session, tf_predictor, tf_input, X, y):
         def f(filename):
