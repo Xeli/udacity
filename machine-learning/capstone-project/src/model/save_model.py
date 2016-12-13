@@ -4,6 +4,10 @@ import csv
 from create_graph import CreateGraph
 import tensorflow as tf
 from tensorflow.contrib.session_bundle import exporter
+from collections import OrderedDict
+from random import shuffle
+from cross_version import train_test_split
+from copy import deepcopy
 
 
 class SaveModel(object):
@@ -24,6 +28,7 @@ class SaveModel(object):
 
     def write_data_to_file(self):
         for key in self.data:
+            print(key)
             self.write_list_to_file(self.data[key], self.directory + key + '.csv')
 
     def write_list_to_file(self, data, filename):
@@ -46,10 +51,50 @@ class SaveModel(object):
 base_directory = os.path.dirname(os.path.abspath(__file__)) + '/../../'
 dataset_dir = base_directory + "dataset/"
 
-cg = CreateGraph(2, 125, 1)
+cg = CreateGraph(label_count=2, image_size=500, image_channels=1)
 
+# get training and validation set
 train_dir = dataset_dir + "normalized_train"
-session, input_, output_, data = cg.train_model(train_dir, 16, 0.01, 4, 10000)
+filenames = cg.get_filenames(train_dir)
+shuffle(filenames)
+labels = cg.get_labels(filenames)
+X_train, X_valid, y_train, y_valid = train_test_split(filenames, labels, test_size=0.1)
+train = (X_train, y_train)
+validation = (X_valid, y_valid)
+
+# get test set
+test_dir = dataset_dir + "normalized_test"
+X_test = cg.get_filenames(test_dir)
+shuffle(filenames)
+y_test = cg.get_labels(filenames)
+test = (X_test, y_test)
+
+# parameters
+parameters = {
+    'batch_size': [32],
+    'layers': [4, 8, 16],
+    'hidden_nodes': [16, 32],
+    'dropout_input': [False, 0.9],
+    'dropout_hidden_layers': [False, 0.5],
+    'learning_mode': ['dynamic', 'constant'],
+    'learning_rate': [0.05, 0.1],
+    'steps': [1000],
+}
+parameters = OrderedDict(parameters.items())
+
+# generate a list of all possible parameter combinations
+params = [{}]
+while len(parameters) > 0:
+    key, values = parameters.popitem()
+    new_params = []
+    for value in values:
+        for new_param in deepcopy(params):
+            new_param[key] = value
+            new_params.append(new_param)
+    params = new_params
+
+for param in params:
+    session, input_, output_, data = cg.train_model(train, validation, test, param)
 
 sm = SaveModel(base_directory + 'results', session, data, input_, output_)
 sm.write_data_to_file()

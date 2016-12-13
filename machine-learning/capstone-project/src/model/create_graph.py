@@ -1,9 +1,7 @@
 import tensorflow as tf
 from os import path, walk, sep
-from random import shuffle
 import numpy as np
 from scipy import ndimage
-from cross_version import train_test_split
 
 
 class CreateGraph(object):
@@ -34,20 +32,25 @@ class CreateGraph(object):
 
         return layer
 
-    def train_model(self, dataset_dir, batch_size, initial_learning_rate, layers, steps):
+    def train_model(self, train, validation, test, param):
+        batch_size = param['batch_size']
+        layers = param['layers']
+        hidden_nodes = param['hidden_nodes']
+        dropout_input = param['dropout_input']
+        dropout_hidden_layers = param['dropout_hidden_layers']
+        learning_mode = param['learning_mode']
+        learning_rate = param['learning_rate']
+        steps = param['steps']
+
+
+
         filter_count = 16
-        hidden_nodes = 64
         padding = 'SAME'
 
-        filenames = self.get_filenames(dataset_dir)
-        shuffle(filenames)
-
-        labels = self.get_labels(filenames)
-
-        X_train, X_test, y_train, y_test = train_test_split(filenames, labels, test_size=0.1)
-        X_train, X_valid, y_train, y_valid = train_test_split(X_train, y_train, test_size=0.01)
-
+        X_train, y_train = train
+        X_valid, y_valid = validation
         X_valid = self.get_data(X_valid)
+        X_test, y_test = test
 
         print("Training data size: {}".format(len(X_train)))
         print("Validation data size: {}".format(len(X_valid)))
@@ -113,9 +116,9 @@ class CreateGraph(object):
 
         batch = tf.Variable(0)
         learning_rate = tf.train.exponential_decay(
-            initial_learning_rate,
+            learning_rate,
             batch * batch_size,
-            len(filenames),
+            len(X_train),
             0.95,
             staircase=True
         )
