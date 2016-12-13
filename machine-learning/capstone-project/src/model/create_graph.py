@@ -20,15 +20,32 @@ class CreateGraph(object):
 
         return filter_, biases
 
-    def add_layer(self, layer, filter_, biases, padding, dropout=False, pool=False, k=2):
-        if dropout:
-            layer = tf.nn.dropout(layer, 0.75)
-
-        layer = tf.nn.conv2d(layer, filter_, strides=[1, 1, 1, 1], padding=padding)
+    def simple_add_layer(self, layer, filters, biases, padding):
+        layer = tf.nn.conv2d(layer, filters, strides=[1, 1, 1, 1], padding=padding)
         layer = tf.nn.relu(layer + biases)
 
-        if pool:
-            layer = tf.nn.max_pool(layer, ksize=[1, k, k, 1], strides=[1, k, k, 1], padding='SAME')
+        return layer
+
+    def add_layer(self, layer, f1, b1, f3, b3, f5, b5, f1p, b1p, padding, dropout=False):
+        print(layer.get_shape())
+        print(f1.get_shape())
+        layer1 = tf.nn.conv2d(layer, f1, strides=[1, 1, 1, 1], padding=padding)
+        layer1 = tf.nn.relu(layer1 + b1)
+
+        layer3 = tf.nn.conv2d(layer, f3, strides=[1, 1, 1, 1], padding=padding)
+        layer3 = tf.nn.relu(layer3 + b3)
+
+        layer5 = tf.nn.conv2d(layer, f5, strides=[1, 1, 1, 1], padding=padding)
+        layer5 = tf.nn.relu(layer5 + b5)
+
+        pool = tf.nn.avg_pool(layer, ksize=[1, 2, 2, 1], strides=[1, 1, 1, 1], padding='SAME')
+        pool = tf.nn.conv2d(pool, f1p, strides=[1, 1, 1, 1], padding=padding)
+        pool = tf.nn.relu(pool + b1p)
+
+        layer = tf.concat(3, [layer1, layer3, layer5, pool])
+
+        if dropout:
+            layer = tf.nn.dropout(layer, 0.75)
 
         return layer
 
@@ -37,12 +54,10 @@ class CreateGraph(object):
         layers = param['layers']
         hidden_nodes = param['hidden_nodes']
         dropout_input = param['dropout_input']
-        dropout_hidden_layers = param['dropout_hidden_layers']
+        dropout_hidden = param['dropout_hidden_layers']
         learning_mode = param['learning_mode']
         learning_rate = param['learning_rate']
         steps = param['steps']
-
-
 
         filter_count = 16
         padding = 'SAME'
@@ -65,21 +80,33 @@ class CreateGraph(object):
         shape = (1, self.image_size, self.image_size, self.image_channels)
         tf_test_dataset = tf.placeholder(tf.float32, shape=shape)
 
-        filters, biases = self.create_weights(5, self.image_channels, filter_count)
-        train = self.add_layer(tf_train_dataset, filters, biases, padding, dropout=True, pool=True)
-        valid = self.add_layer(tf_validation_dataset, filters, biases, padding, pool=True)
-        test = self.add_layer(tf_test_dataset, filters, biases, padding, pool=True)
+        train = tf_train_dataset
+        if dropout_input:
+            train = tf.nn.dropout(train, dropout_input)
 
+        valid = tf_validation_dataset
+        test = tf_test_dataset
+
+        filter_count_adj = self.image_channels
         for i in range(0, layers):
-            filters, biases = self.create_weights(3, filter_count, filter_count)
-            train = self.add_layer(train, filters, biases, padding, dropout=True)
-            valid = self.add_layer(valid, filters, biases, padding)
-            test = self.add_layer(test, filters, biases, padding)
+            f1, b1 = self.create_weights(1, filter_count_adj, filter_count)
+            f3, b3 = self.create_weights(3, filter_count_adj, filter_count)
+            f5, b5 = self.create_weights(5, filter_count_adj, filter_count)
+            f1p, b1p = self.create_weights(1, filter_count_adj, filter_count)
 
-            filters, biases = self.create_weights(3, filter_count, filter_count)
-            train = self.add_layer(train, filters, biases, padding, dropout=True, pool=True)
-            valid = self.add_layer(valid, filters, biases, padding, pool=True)
-            test = self.add_layer(test, filters, biases, padding, pool=True)
+            train = self.add_layer(train, f1, b1, f3, b3, f5, b5, f1p, b1p, padding, dropout_hidden)
+            valid = self.add_layer(valid, f1, b1, f3, b3, f5, b5, f1p, b1p, padding)
+            test = self.add_layer(test, f1, b1, f3, b3, f5, b5, f1p, b1p, padding)
+
+            train_shape = train.get_shape()
+            if i > 1 and train_shape[1] > 4 and i % 2 == 0:
+                ksize = [1, 2, 2, 1]
+                strides = [1, 2, 2, 1]
+                train = tf.nn.avg_pool(train, ksize=ksize, strides=strides, padding='SAME')
+                valid = tf.nn.max_pool(valid, ksize=ksize, strides=strides, padding='SAME')
+                test = tf.nn.max_pool(test, ksize=ksize, strides=strides, padding='SAME')
+
+            filter_count_adj = filter_count * 4
 
         # create fully connected output layer
         shape = train.get_shape().as_list()
