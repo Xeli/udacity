@@ -167,7 +167,7 @@ class CreateGraph(object):
             _, l, predictions = session.run(args, feed_dict=feed_dict)
 
             if learning_rate == 'dynamic':
-                new_learning_rate = self.update_learning_rate(l, previous_loss, new_learning_rate)
+                new_learning_rate = self.update_learning_rate(l, previous_loss, new_learning_rate, learning_rate * 2)
             previous_loss = l
             if (step % 150 == 0):
                 print('Step: {}'.format(step))
@@ -191,7 +191,7 @@ class CreateGraph(object):
 
         return session, tf_test_dataset, test_prediction, data
 
-    def update_learning_rate(self, loss, old_loss, learning_rate):
+    def update_learning_rate(self, loss, old_loss, learning_rate, max_learning_rate):
         if old_loss != None and loss > old_loss:
             return learning_rate * 1.5
 
