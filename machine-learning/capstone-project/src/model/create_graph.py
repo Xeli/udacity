@@ -168,6 +168,7 @@ class CreateGraph(object):
 
             if learning_rate == 'dynamic':
                 new_learning_rate = self.update_learning_rate(l, previous_loss, new_learning_rate)
+            previous_loss = l
             if (step % 150 == 0):
                 print('Step: {}'.format(step))
                 print('Minibatch loss at step %d: %f' % (step, l))
