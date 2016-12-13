@@ -22,5 +22,5 @@ unzip(trainzip, dataset_dir)
 unzip(testzip, dataset_dir)
 
 print("Normalizing..")
-convert(dataset_dir + "train", dataset_dir + "normalized_train", 125)
+convert(dataset_dir + "train", dataset_dir + "normalized_train", 500)
 convert(dataset_dir + "test", dataset_dir + "normalized_test", 125)
