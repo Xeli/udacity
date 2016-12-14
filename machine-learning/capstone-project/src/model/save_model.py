@@ -75,8 +75,7 @@ validation = (X_valid, y_valid)
 # get test set
 test_dir = dataset_dir + "normalized_test"
 X_test = cg.get_filenames(test_dir)
-shuffle(filenames)
-y_test = cg.get_labels(filenames)
+y_test = cg.get_labels(X_test)
 test = (X_test, y_test)
 
 # parameters
