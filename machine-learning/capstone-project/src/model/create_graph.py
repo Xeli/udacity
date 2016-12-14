@@ -74,6 +74,7 @@ class CreateGraph(object):
         print("Training data size: {}".format(len(X_train)))
         print("Validation data size: {}".format(len(X_valid)))
         print("Test data size: {}".format(len(X_test)))
+        print("Steps: {}".format(steps))
 
         # Input data.
         shape = (batch_size, self.image_size, self.image_size, self.image_channels)
