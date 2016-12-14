@@ -1,6 +1,7 @@
 import datetime
 import os
 import csv
+import json
 from create_graph import CreateGraph
 import tensorflow as tf
 from tensorflow.contrib.session_bundle import exporter
@@ -12,12 +13,18 @@ from copy import deepcopy
 
 class SaveModel(object):
 
-    def __init__(self, base_dir, session, data, input_, output_):
+    def __init__(self, base_dir, session, data, input_, output_, config):
         self.directory = self.create_directory(base_dir)
         self.session = session
         self.data = data
         self.input = input_
         self.output = output_
+        self.config = config
+
+    def save(self):
+        self.write_config_to_file()
+        self.write_data_to_file()
+        self.write_model_to_file()
 
     def create_directory(self, basedir):
         now = datetime.datetime.now()
@@ -26,9 +33,12 @@ class SaveModel(object):
         os.mkdir(basedir + os.sep + directory_name)
         return basedir + os.sep + directory_name + os.sep
 
+    def write_config_to_file(self):
+        with open(self.directory + 'config.json', 'w') as fp:
+            json.dump(self.config, fp)
+
     def write_data_to_file(self):
         for key in self.data:
-            print(key)
             self.write_list_to_file(self.data[key], self.directory + key + '.csv')
 
     def write_list_to_file(self, data, filename):
@@ -100,10 +110,13 @@ param = {
     'dropout_input': False,
     'dropout_hidden_layers': False,
     'learning_rate': 0.05,
-    'epochs': 10,
+    'epochs': 1,
 }
-session, input_, output_, data = cg.train_model(train, validation, test, param)
 
-sm = SaveModel(base_directory + 'results', session, data, input_, output_)
-sm.write_data_to_file()
-sm.write_model_to_file()
+params = [param]
+
+for param in params:
+    session, input_, output_, data = cg.train_model(train, validation, test, param)
+
+    sm = SaveModel(base_directory + 'results', session, data, input_, output_, param)
+    sm.save()
