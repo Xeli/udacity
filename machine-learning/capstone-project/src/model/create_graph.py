@@ -155,7 +155,6 @@ class CreateGraph(object):
             session.run(tf.initialize_all_variables())
 
         new_learning_rate = initial_learning_rate
-        previous_loss = None
         for step in range(steps):
             offset = (step * batch_size) % (len(y_train) - batch_size)
             batch_filenames = X_train[offset:(offset + batch_size)]
@@ -168,8 +167,7 @@ class CreateGraph(object):
             _, l, predictions = session.run(args, feed_dict=feed_dict)
 
             if learning_rate == 'dynamic':
-                new_learning_rate = self.update_learning_rate(l, previous_loss, new_learning_rate, learning_rate * 2)
-            previous_loss = l
+                new_learning_rate *= 0.975
             if (step % 150 == 0):
                 print('Step: {}'.format(step))
                 print('Minibatch loss at step %d: %f' % (step, l))
@@ -191,12 +189,6 @@ class CreateGraph(object):
         print('Testset logloss: {}'.format(logloss))
 
         return session, tf_test_dataset, test_prediction, data
-
-    def update_learning_rate(self, loss, old_loss, learning_rate, max_learning_rate):
-        if old_loss != None and loss > old_loss:
-            return learning_rate * 1.5
-
-        return learning_rate * 0.99
 
     def test_dataset(self, session, tf_predictor, tf_input, X, y):
         def f(filename):
