@@ -142,8 +142,8 @@ class CreateGraph(object):
         test_prediction = tf.nn.softmax(model_test)
 
         data = {
-            'accuracy': [],
-            'logloss': [],
+            'train-accuracy': [],
+            'train-logloss': [],
             'validation-accuracy': [],
             'validation-logloss': []
         }
@@ -168,15 +168,15 @@ class CreateGraph(object):
 
             if learning_rate == 'dynamic':
                 new_learning_rate *= 0.975
-            if (step % 150 == 0):
+            if (step % 50 == 0):
                 print('Step: {}'.format(step))
                 print('Minibatch loss at step %d: %f' % (step, l))
                 accuracy, logloss = self.test(predictions, batch_labels)
                 print('Minibatch accuracy: %.1f%%' % accuracy)
                 print('Minibatch logloss: {}'.format(logloss))
 
-                data['accuracy'].append(accuracy)
-                data['logloss'].append(logloss)
+                data['train-accuracy'].append(accuracy)
+                data['train-logloss'].append(logloss)
 
                 accuracy, logloss = self.test_dataset(session, test_prediction, tf_test_dataset, X_valid, y_valid)
                 print('Validation accuracy: %.1f%%' % accuracy)
@@ -187,6 +187,9 @@ class CreateGraph(object):
         accuracy, logloss = self.test_dataset(session, test_prediction, tf_test_dataset, X_test, y_test)
         print('Testset accuracy: {}'.format(accuracy))
         print('Testset logloss: {}'.format(logloss))
+
+        data['test-accuracy'] = [accuracy]
+        data['test-logloss'] = [logloss]
 
         return session, tf_test_dataset, test_prediction, data
 
