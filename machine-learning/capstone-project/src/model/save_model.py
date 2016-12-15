@@ -85,7 +85,9 @@ parameters = {
     'hidden_nodes': [16, 32],
     'dropout_input': [False, 0.9],
     'dropout_hidden_layers': [False, 0.5],
-    'learning_rate': ['dynamic', 0.05, 0.1],
+    'learning_mode': ['dynamic', 'constant'],
+    'learning_rate': [0.05, 0.1],
+    'filter_count': [32],
     'epochs': [1, 10],
 }
 parameters = OrderedDict(parameters.items())
@@ -108,7 +110,9 @@ param = {
     'hidden_nodes': 16,
     'dropout_input': False,
     'dropout_hidden_layers': False,
+    'learning_mode': 'constant',
     'learning_rate': 0.05,
+    'filter_count': 32,
     'epochs': 1,
 }
 

@@ -41,11 +41,11 @@ class CreateGraph(object):
 
         return layer
 
-    def add_layer(self, layer, filter_, biases, padding, dropout=False, pool=False, k=2):
+    def add_layer(self, layer, filter_, biases, padding, dropout=False, pool=False, cnnk=1, k=2):
         if dropout:
             layer = tf.nn.dropout(layer, 0.75)
 
-        layer = tf.nn.conv2d(layer, filter_, strides=[1, 1, 1, 1], padding=padding)
+        layer = tf.nn.conv2d(layer, filter_, strides=[1, cnnk, cnnk, 1], padding=padding)
         layer = tf.nn.relu(layer + biases)
 
         if pool:
@@ -61,8 +61,9 @@ class CreateGraph(object):
         hidden_nodes = param['hidden_nodes']
         dropout_input = param['dropout_input']
         dropout_hidden = param['dropout_hidden_layers']
+        learning_mode = param['learning_mode']
         learning_rate = param['learning_rate']
-        filter_count = 16
+        filter_count = param['filter_count']
         padding = 'SAME'
 
         X_train, y_train = train
@@ -129,11 +130,7 @@ class CreateGraph(object):
         loss = tf.reduce_mean(
                 tf.nn.softmax_cross_entropy_with_logits(model_train, tf_train_labels))
 
-        initial_learning_rate = learning_rate
-        if learning_rate == 'dynamic':
-            initial_learning_rate = 0.2
-
-        tf_learning_rate = tf.Variable(initial_learning_rate)
+        tf_learning_rate = tf.Variable(learning_rate)
 
         optimizer = tf.train.GradientDescentOptimizer(tf_learning_rate)
         optimizer = optimizer.minimize(loss)
@@ -154,7 +151,7 @@ class CreateGraph(object):
         else:
             session.run(tf.initialize_all_variables())
 
-        new_learning_rate = initial_learning_rate
+        new_learning_rate = learning_rate
         for step in range(steps):
             offset = (step * batch_size) % (len(y_train) - batch_size)
             batch_filenames = X_train[offset:(offset + batch_size)]
@@ -166,7 +163,7 @@ class CreateGraph(object):
             args = [optimizer, loss, train_prediction]
             _, l, predictions = session.run(args, feed_dict=feed_dict)
 
-            if learning_rate == 'dynamic':
+            if learning_mode == 'dynamic':
                 new_learning_rate *= 0.975
             if (step % 50 == 0):
                 print('Step: {}'.format(step))
@@ -206,7 +203,6 @@ class CreateGraph(object):
         predictions = np.array(predictions).reshape(len(predictions), self.label_count)
 
         return self.test(predictions, y)
-
 
     def test(self, predictions, labels):
         return self.accuracy(predictions, labels), self.logloss(predictions, labels)
