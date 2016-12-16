@@ -121,3 +121,4 @@ for param in params:
 
     sm = SaveModel(base_directory + 'results', session, data, input_, output_, param)
     sm.save()
+    cg.close(session)

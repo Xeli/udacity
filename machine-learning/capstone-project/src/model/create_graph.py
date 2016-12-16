@@ -195,6 +195,9 @@ class CreateGraph(object):
 
         return session, tf_test_dataset, test_prediction, data
 
+    def close(self, session):
+        session.close()
+
     def test_dataset(self, session, tf_predictor, tf_input, X, y):
         def f(filename):
             shape = (1, self.image_size, self.image_size, self.image_channels)
