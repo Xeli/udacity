@@ -81,12 +81,11 @@ test = (X_test, y_test)
 # parameters
 parameters = {
     'batch_size': [32],
-    'layers': [4, 8, 16],
-    'hidden_nodes': [16, 32],
-    'dropout_input': [False, 0.9],
+    'layers': [4, 8, 12],
+    'hidden_nodes': [32, 64],
+    'dropout_input': [False, 0.75],
     'dropout_hidden_layers': [False, 0.5],
-    'learning_mode': ['dynamic', 'constant'],
-    'learning_rate': [0.05, 0.1],
+    'learning_rate': [0.05, 0.1, 'dynamic'],
     'filter_count': [32],
     'epochs': [1, 10],
 }
@@ -105,18 +104,17 @@ while len(parameters) > 0:
 
 # for param in params:
 param = {
-    'batch_size': 16,
+    'batch_size': 32,
     'layers': 8,
     'hidden_nodes': 16,
     'dropout_input': False,
     'dropout_hidden_layers': False,
-    'learning_mode': 'constant',
     'learning_rate': 0.05,
     'filter_count': 32,
     'epochs': 1,
 }
 
-params = [param]
+#params = [param]
 
 for param in params:
     session, input_, output_, data = cg.train_model(train, validation, test, param)

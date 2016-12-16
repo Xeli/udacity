@@ -61,8 +61,13 @@ class CreateGraph(object):
         hidden_nodes = param['hidden_nodes']
         dropout_input = param['dropout_input']
         dropout_hidden = param['dropout_hidden_layers']
-        learning_mode = param['learning_mode']
-        learning_rate = param['learning_rate']
+
+        if param['learning_rate'] == 'dynamic':
+            learning_mode = 'dynamic'
+            learning_rate = 0.2
+        else:
+            learning_mode = 'constant'
+            learning_rate = param['learning_rate']
         filter_count = param['filter_count']
         padding = 'SAME'
 
