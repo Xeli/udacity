@@ -24,7 +24,6 @@ class SaveModel(object):
     def save(self):
         self.write_config_to_file()
         self.write_data_to_file()
-        self.write_model_to_file()
 
     def create_directory(self, basedir):
         now = datetime.datetime.now()
