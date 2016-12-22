@@ -41,6 +41,11 @@ class SaveModel(object):
         for key in self.data:
             self.write_list_to_file(self.data[key], self.directory + key + '.csv')
 
+    def write_submission(self, data):
+        new_file = open(self.directory + 'submission.csv')
+        write = csv.write(new_file, quoting=csv.QUOTE_ALL)
+        writer.writerows(data)
+
     def write_list_to_file(self, data, filename):
         new_file = open(filename, 'w')
         writer = csv.writer(new_file, quoting=csv.QUOTE_ALL)
@@ -130,4 +135,5 @@ for param in params:
         idOfFile = os.path.basename(filename).split('.')[0]
         prob = np.clip(prob, 1E-7, 1-1E-7)
         data.append((idOfFile, prob))
+        sm.write_submission(data)
     cg.close(session)
