@@ -220,6 +220,10 @@ class CreateGraph(object):
         return 100.0 * np.sum(np.argmax(predictions, 1) == np.argmax(labels, 1)) / total
 
     def logloss(self, predictions, labels):
+        epsilon = 1E-7
+        predictions = np.clip(predictions, 0 + epsilon, 1 - epsilon)
+        labels = np.clip(labels, 0 + epsilon, 1 - epsilon)
+
         error = 0
         for prediction, label in zip(predictions.tolist(), labels.tolist()):
             error += label[0] * np.log(prediction[0]) + (1-label[1])*np.log(1 - prediction[1])
