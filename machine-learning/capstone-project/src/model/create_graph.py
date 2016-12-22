@@ -141,7 +141,7 @@ class CreateGraph(object):
         optimizer = tf.train.GradientDescentOptimizer(tf_learning_rate)
         optimizer = optimizer.minimize(loss)
 
-        train_prediction = tf.Print(tf.nn.softmax(model_train), [tf_learning_rate])
+        train_prediction = tf.nn.softmax(model_train)
         test_prediction = tf.nn.softmax(model_test)
 
         data = {
