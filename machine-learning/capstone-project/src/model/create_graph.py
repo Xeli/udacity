@@ -76,6 +76,7 @@ class CreateGraph(object):
         X_test, y_test = test
 
         steps = len(X_train) // batch_size * param['epochs']
+        steps = 1
 
         print("Training data size: {}".format(len(X_train)))
         print("Validation data size: {}".format(len(X_valid)))
@@ -198,7 +199,7 @@ class CreateGraph(object):
     def close(self, session):
         session.close()
 
-    def test_dataset(self, session, tf_predictor, tf_input, X, y):
+    def run_dataset(self, session, tf_predictor, tf_input, X):
         def f(filename):
             shape = (1, self.image_size, self.image_size, self.image_channels)
             image_data = self.get_data([filename])[0].reshape(shape)
@@ -208,8 +209,10 @@ class CreateGraph(object):
             return session.run(tf_predictor, feed_dict=feed_dict)
 
         predictions = [f(data) for data in X]
-        predictions = np.array(predictions).reshape(len(predictions), self.label_count)
+        return np.array(predictions).reshape(len(predictions), self.label_count)
 
+    def test_dataset(self, session, tf_predictor, tf_input, X, y):
+        predictions = self.run_dataset(session, tf_predictor, tf_input, X)
         return self.test(predictions, y)
 
     def test(self, predictions, labels):

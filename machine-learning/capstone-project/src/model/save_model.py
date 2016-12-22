@@ -9,6 +9,7 @@ from collections import OrderedDict
 from random import shuffle
 from cross_version import train_test_split
 from copy import deepcopy
+import numpy as np
 
 
 class SaveModel(object):
@@ -113,11 +114,20 @@ param = {
     'epochs': 1,
 }
 
-#params = [param]
+# params = [param]
 
 for param in params:
     session, input_, output_, data = cg.train_model(train, validation, test, param)
 
     sm = SaveModel(base_directory + 'results', session, data, input_, output_, param)
     sm.save()
+
+    filenames = cg.get_filenames(dataset_dir + 'normalized_test_kaggle')
+    predictions = cg.run_dataset(session, output_, input_, filenames)
+
+    data = [('id', 'label')]
+    for filename, prob in zip(filenames, predictions):
+        idOfFile = os.path.basename(filename).split('.')[0]
+        prob = np.clip(prob, 1E-7, 1-1E-7)
+        data.append((idOfFile, prob))
     cg.close(session)
