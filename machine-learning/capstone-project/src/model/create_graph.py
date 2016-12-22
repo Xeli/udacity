@@ -76,7 +76,6 @@ class CreateGraph(object):
         X_test, y_test = test
 
         steps = len(X_train) // batch_size * param['epochs']
-        steps = 1
 
         print("Training data size: {}".format(len(X_train)))
         print("Validation data size: {}".format(len(X_valid)))
