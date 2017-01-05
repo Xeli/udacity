@@ -42,8 +42,8 @@ class SaveModel(object):
             self.write_list_to_file(self.data[key], self.directory + key + '.csv')
 
     def write_submission(self, data):
-        new_file = open(self.directory + 'submission.csv')
-        write = csv.write(new_file, quoting=csv.QUOTE_ALL)
+        new_file = open(self.directory + 'submission.csv', 'w')
+        writer = csv.writer(new_file, quoting=csv.QUOTE_ALL)
         writer.writerows(data)
 
     def write_list_to_file(self, data, filename):
@@ -111,15 +111,15 @@ while len(parameters) > 0:
 param = {
     'batch_size': 32,
     'layers': 8,
-    'hidden_nodes': 16,
+    'hidden_nodes': 32,
     'dropout_input': False,
     'dropout_hidden_layers': False,
     'learning_rate': 0.05,
     'filter_count': 32,
-    'epochs': 1,
+    'epochs': 20,
 }
 
-# params = [param]
+params = [param]
 
 for param in params:
     session, input_, output_, data = cg.train_model(train, validation, test, param)
@@ -133,7 +133,7 @@ for param in params:
     data = [('id', 'label')]
     for filename, prob in zip(filenames, predictions):
         idOfFile = os.path.basename(filename).split('.')[0]
-        prob = np.clip(prob, 1E-7, 1-1E-7)
+        prob = np.clip(prob[0], 1E-7, 1-1E-7)
         data.append((idOfFile, prob))
     sm.write_submission(data)
     cg.close(session)

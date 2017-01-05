@@ -76,7 +76,6 @@ class CreateGraph(object):
         X_test, y_test = test
 
         steps = len(X_train) // batch_size * param['epochs']
-        steps = 1
 
         print("Training data size: {}".format(len(X_train)))
         print("Validation data size: {}".format(len(X_valid)))
@@ -141,7 +140,7 @@ class CreateGraph(object):
         optimizer = tf.train.GradientDescentOptimizer(tf_learning_rate)
         optimizer = optimizer.minimize(loss)
 
-        train_prediction = tf.Print(tf.nn.softmax(model_train), [tf_learning_rate])
+        train_prediction = tf.nn.softmax(model_train)
         test_prediction = tf.nn.softmax(model_test)
 
         data = {
