@@ -15,9 +15,9 @@ def create_graph(modelPath):
 def testModel(modelPath, labelsPath, filenames, labels):
     create_graph(modelPath)
 
-    f = open(labelsPath, 'rb')
+    f = open(labelsPath, 'r')
     lines = f.readlines()
-    labelOrder = [str(w).replace("\n", "") for w in lines]
+    labelOrder = [w.strip() for w in lines]
     with tf.Session() as sess:
         softmax_tensor = sess.graph.get_tensor_by_name('final_result:0')
 
@@ -43,9 +43,9 @@ def testModel(modelPath, labelsPath, filenames, labels):
 
 def getPredictions(modelPath, labelsPath, filenames):
     create_graph(modelPath)
-    f = open(labelsPath, 'rb')
+    f = open(labelsPath, 'r')
     lines = f.readlines()
-    labelOrder = [str(w).replace("\n", "") for w in lines]
+    labelOrder = [w.strip() for w in lines]
 
     answers = []
     with tf.Session() as sess:
