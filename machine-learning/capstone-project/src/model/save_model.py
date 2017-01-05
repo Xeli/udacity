@@ -135,5 +135,5 @@ for param in params:
         idOfFile = os.path.basename(filename).split('.')[0]
         prob = np.clip(prob, 1E-7, 1-1E-7)
         data.append((idOfFile, prob))
-        sm.write_submission(data)
+    sm.write_submission(data)
     cg.close(session)
