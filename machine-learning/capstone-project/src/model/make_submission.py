@@ -18,7 +18,7 @@ def clean(i):
 base_directory = path.dirname(path.abspath(__file__)) + '/../../'
 dataset_dir = base_directory + "dataset/"
 
-filenames = get_filenames(dataset_dir + "normalized_test")
+filenames = get_filenames(dataset_dir + "normalized_test_kaggle")
 
 graphFile = base_directory + 'models/inception-v3/output_graph.pb'
 labelFile = base_directory + 'models/inception-v3/output_labels.txt'
