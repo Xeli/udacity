@@ -21,6 +21,7 @@
 This Capstone project is about the Kaggle competition: Dogs vs. Cats Redux: Kernels Edition\footnote{\url{https://www.kaggle.com/c/dogs-vs-cats-redux-kernels-edition}}. Originally this competition ran in 2013. In the last couple of years Machine learning has changed with techniques like Deep learning becoming more popular. For this reason Kaggle reintroduced the Dogs vs. Cats competition. Comparing the results makes for a nice view into the progression of Machine learning over the last couple of years.
 \subsection{Problem statement}
 The competition is about determining whether an image contains a dog or a cat. A subset of the Asirra\footnote{Animal Species Image Recognition for Restricting Access} dataset is given as part of the competition. The entire dataset has over 3 million images but for this competition we're restricted to a training set of 25,000 images. For each image our model will need to provide a probability of it containing a dog, where 0 is a cat, 1 a dog, 0.5 would be unsure (this is never the correct answer for this dataset). To solve this problem I have a couple of steps to take.
+\pagebreak
 \subsubsection{Analysis of the dataset}
 I will need to get some information about the dataset. For instance the sizes of all the images, because I need all images to be the same size. I will also look at how the luminance or brightness varies among the images.
 \subsubsection{Preprocessing of the data}
@@ -192,8 +193,8 @@ Apart the refinement above, actually building the classifiers was quite straight
 \subsubsection{Inception model}
 The inception model handles all the validation and testing within the provides scripts. Simple by providing the percentages of the training set used for the validation set gave me following results. For the testset a logloss of 0.027707 and an accuracy of 99.4\%.
 \subsubsection{Custom model}
-I tested 144 different models for all the combinations of the hyperparameters (See table \ref{hypersearch}). I picked the top 5\% results and looked at the frequencies of the chosen parameters. These were the results (bold indicates the best result:
- 
+I tested 144 different models for all the combinations of the hyperparameters (See table \ref{hypersearch}). I picked the top 5\% results and looked at the frequencies of the chosen parameters. These were the results (bold indicates the highest frequency):
+
 \begin{tabular}{ c | c | l}
  Category & Parameter & Frequency\\
  \hline
@@ -234,7 +235,7 @@ I tested 144 different models for all the combinations of the hyperparameters (S
 	\hline
 \end{tabular}
 
-\paragraph{} Although I have actually tested this model in my exhaustive search, it's not clear whether it was done training yet. To verify this we can plot the LogLoss of the training set versus the LogLoss of the validation set. I reran the classifier, but used a bigger epoch of 50 (this results in around 27000 steps) to see where it would finish training and start overfitting or memorizing the data. Figure \ref{fig:overfitting} shows pretty erratic loglosses in the validation data but it does show a trend of LogLoss going down gradually up to the 5000 steps. After that point the train and validation loglosses start to seperate from each other indicating the model it's overfitting on the training data after that point.
+\paragraph{} Although I have actually tested this model (in my exhaustive search i tested all variants), it's not clear whether it was done training yet. To verify this I plotted the LogLoss of the training set versus the LogLoss of the validation set. I reran the classifier, but used a bigger epoch of 50 (this results in around 27000 steps) to see where it would finish training and start overfitting or memorizing the data. Figure \ref{fig:overfitting} shows pretty erratic loglosses in the validation data but it does show a trend of LogLoss going down gradually up to the 5000 steps. After that point the train and validation loglosses start to seperate from each other indicating the model it's overfitting on the training data after that point.
 
 \paragraph{} After training the model once more but stopping after 5000 steps (9 epochs). The logloss of the test set was 0.241 with an accuracy of 76.12\%.
 
@@ -251,6 +252,6 @@ Comparing the model to the 2013 competition is a bit trickier, because it doesn'
 \section{Conclusion}
 \subsection{Reflection \& improvements}
 I've provided two different approaches to the problem. With the inception model out performing the custom model.  
-The hardest part was finding a good architecture for the custom model, while keeping the time to train low. Further improvements could be found here. In particular allowing for a lot more training time. Retraining the inception model only takes 15 to 30 minutes, but the first layers have been trained for a long time and we can utilize that training time without too much cost. This advantage does my custom model not have. Introducting a more complex architecture with possibly inception modules and training on a bigger dataset would surely provide with more promising results.
+The hardest part was finding a good architecture for the custom model, while keeping the time to train low. Further improvements could be found here. In particular allowing for a lot more training time. Retraining the inception model only takes 15 to 30 minutes, but the first layers have been trained for a long time and we can utilize that training time without too much cost. My custom model does not have this advantage. Introducting a more complex architecture with possibly inception modules and training on a bigger dataset would surely provide with more promising results.
 
 \end{document}
