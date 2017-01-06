@@ -1,0 +1,13 @@
+Getting the data
+
+1 Get the train and test zip files from: https://www.kaggle.com/c/dogs-vs-cats-redux-kernels-edition/data
+2 run the src/preprocess/main.py with the train and test zip files as its arguments:
+    python src/preprocess/main.py /path/to/train.zip /path/to/test.zip
+
+    This step will take a while because it will create several copies of the dataset to make comparisions between them. Keep in mind you will need a gb of diskspace.
+
+3 Train the model using
+    python src/model/train_custom_model.py
+
+4 See the results using
+    python src/results/main.py
